@@ -4,7 +4,6 @@ from app.knowledge.rag import chat_with_knowledge
 
 router = APIRouter()
 
-
 class ChatRequest(BaseModel):
     question: str
 
