@@ -6,47 +6,52 @@
     <title>Trust Partners Chatbot</title>
 
     <style>
-        /* === Floating Button === */
         #tp-chat-btn {
             position: fixed;
             bottom: 20px;
-            left: 20px;
-            background: #0f2a44;
-            color: #fff;
-            border-radius: 50%;
+            right: 20px;
             width: 56px;
             height: 56px;
+            border-radius: 50%;
+            background-color: #0f2a44;
+            color: #fff;
             font-size: 24px;
-            cursor: pointer;
             border: none;
-            z-index: 9999;
+            cursor: pointer;
+            z-index: 999999;
         }
 
-        /* === Chat Window === */
         #tp-chatbox {
             position: fixed;
             bottom: 90px;
-            left: 20px;
+            right: 20px;
+            /* ✅ moved to right */
             width: 320px;
             height: 420px;
-            background: white;
+            background: #fff;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
             display: none;
             flex-direction: column;
-            z-index: 9999;
+            z-index: 999999;
+            overflow: hidden;
         }
 
-        /* Header */
         #tp-chat-header {
             background: #0f2a44;
-            color: white;
+            color: #fff;
             padding: 12px;
             font-weight: bold;
-            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
-        /* Messages */
+        #tp-chat-header span {
+            cursor: pointer;
+            font-size: 18px;
+        }
+
         #tp-chat-messages {
             flex: 1;
             padding: 10px;
@@ -54,7 +59,18 @@
             font-size: 14px;
         }
 
-        /* Input */
+        .msg {
+            margin-bottom: 8px;
+        }
+
+        .user {
+            font-weight: bold;
+        }
+
+        .bot {
+            color: #333;
+        }
+
         #tp-chat-input {
             display: flex;
             border-top: 1px solid #ddd;
@@ -69,7 +85,7 @@
 
         #tp-chat-input button {
             background: #0f2a44;
-            color: white;
+            color: #fff;
             border: none;
             padding: 10px 14px;
             cursor: pointer;
@@ -82,50 +98,71 @@
     <button id="tp-chat-btn">💬</button>
 
     <div id="tp-chatbox">
-        <div id="tp-chat-header">Trust Partners Assistant</div>
+        <div id="tp-chat-header">
+            Trust Partners Assistant
+            <span onclick="toggleChat()">✕</span>
+        </div>
+
         <div id="tp-chat-messages"></div>
+
         <div id="tp-chat-input">
-            <input type="text" id="tp-user-input" placeholder="Ask a question…" />
+            <input id="tp-user-input" placeholder="Ask a question…" />
             <button onclick="sendMessage()">Send</button>
         </div>
     </div>
 
     <script>
+        const API_URL = "http://127.0.0.1:8002/api/chat";
+
         const chatBtn = document.getElementById("tp-chat-btn");
         const chatBox = document.getElementById("tp-chatbox");
         const messages = document.getElementById("tp-chat-messages");
         const input = document.getElementById("tp-user-input");
 
-        // Toggle chat
-        chatBtn.onclick = () => {
-            chatBox.style.display = chatBox.style.display === "flex" ? "none" : "flex";
-        };
+        chatBtn.onclick = toggleChat;
 
-        // Send message
+        function toggleChat() {
+            chatBox.style.display = chatBox.style.display === "flex" ? "none" : "flex";
+        }
+
+        input.addEventListener("keypress", e => {
+            if (e.key === "Enter") sendMessage();
+        });
+
+        addMessage("bot", "Hi! How can I help you today?");
+
         async function sendMessage() {
             const text = input.value.trim();
             if (!text) return;
 
-            addMessage("You", text);
+            addMessage("user", text);
             input.value = "";
 
-            const res = await fetch("http://127.0.0.1:8002/api/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ question: text })
-            });
+            const typing = addMessage("bot", "Typing...");
 
-            const data = await res.json();
-            addMessage("Bot", data.answer);
+            try {
+                const res = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question: text })
+                });
+
+                const data = await res.json();
+                typing.remove();
+                addMessage("bot", data.answer || "Sorry, something went wrong.");
+            } catch (err) {
+                typing.remove();
+                addMessage("bot", "Unable to reach the server. Please try again later.");
+            }
         }
 
-        // Add message
-        function addMessage(sender, text) {
+        function addMessage(type, text) {
             const div = document.createElement("div");
-            div.innerHTML = `<b>${sender}:</b> ${text}`;
-            div.style.marginBottom = "8px";
+            div.className = `msg ${type}`;
+            div.innerHTML = `<span class="${type}">${type === "user" ? "You" : "Bot"}:</span> ${text}`;
             messages.appendChild(div);
             messages.scrollTop = messages.scrollHeight;
+            return div;
         }
     </script>
 
